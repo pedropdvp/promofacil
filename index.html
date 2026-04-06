@@ -6,10 +6,13 @@
   <meta name="theme-color" content="#1e3a5f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="manifest" href="manifest.json">
-  <title>PromoFácil</title>
+  <title>PromoFácil V2.0</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js" defer></script>
 </head>
 <body>
 
@@ -18,15 +21,17 @@
     <div class="splash-content">
       <div class="splash-icon">🏗️</div>
       <h1 class="splash-title">PromoFácil</h1>
-      <p class="splash-sub">Viabilidade Imobiliária. Decisões Inteligentes.</p>
-      <span class="splash-version">v1.0</span>
+      <p class="splash-sub">Viabilidade Imobiliária Inteligente</p>
+      <span class="splash-version">v2.0 Pro</span>
       <div class="splash-features">
         <div class="splash-feat">📊 Viabilidade</div>
-        <div class="splash-feat">🏢 Projetos</div>
+        <div class="splash-feat">📈 Gráficos</div>
         <div class="splash-feat">💰 Cash-Flow</div>
-        <div class="splash-feat">📈 KPIs</div>
         <div class="splash-feat">🔄 Cenários</div>
-        <div class="splash-feat">🏠 Promoção</div>
+        <div class="splash-feat">🚦 Risco</div>
+        <div class="splash-feat">📋 Comparar</div>
+        <div class="splash-feat">📄 PDF</div>
+        <div class="splash-feat">🏦 Crédito</div>
       </div>
       <button class="btn-primary btn-xl" onclick="P.showScreen('screen-login')" style="margin-top:2rem">Começar</button>
     </div>
@@ -36,11 +41,11 @@
   <div id="screen-login" class="screen">
     <div class="auth-container">
       <div class="auth-logo">🏗️ PromoFácil</div>
-      <p class="text-muted" style="text-align:center;margin-bottom:2rem">Gerir projetos imobiliários nunca foi tão fácil</p>
+      <p class="text-muted" style="text-align:center;margin-bottom:2rem">Viabilidade imobiliária ao alcance de todos</p>
       <form onsubmit="P.login(event)">
         <div class="form-group"><label>Nome *</label><input type="text" id="login-name" placeholder="O seu nome" required></div>
         <div class="form-group"><label>Email *</label><input type="email" id="login-email" placeholder="email@exemplo.com" required></div>
-        <div class="form-group"><label>Empresa (opcional)</label><input type="text" id="login-empresa" placeholder="Nome da empresa"></div>
+        <div class="form-group"><label>Empresa</label><input type="text" id="login-empresa" placeholder="Nome da empresa"></div>
         <button type="submit" class="btn-primary btn-xl btn-full">Entrar</button>
       </form>
     </div>
@@ -49,13 +54,7 @@
   <!-- ===== DASHBOARD ===== -->
   <div id="screen-dashboard" class="screen">
     <header class="app-header">
-      <div class="header-left">
-        <span class="header-logo">🏗️</span>
-        <div>
-          <h1 class="header-title">PromoFácil</h1>
-          <p id="dash-user" style="font-size:.75rem;color:var(--text-3)"></p>
-        </div>
-      </div>
+      <div class="header-left"><span class="header-logo">🏗️</span><div><h1 class="header-title">PromoFácil</h1><p id="dash-user" style="font-size:.75rem;color:var(--text-3)"></p></div></div>
       <button class="btn-icon" onclick="P.showScreen('screen-settings')">⚙️</button>
     </header>
     <div class="dash-stats">
@@ -64,13 +63,14 @@
       <div class="stat-card stat-green"><div class="stat-number" id="stat-lucro">0 €</div><div class="stat-label">Lucro</div></div>
       <div class="stat-card stat-red"><div class="stat-number" id="stat-roi">0%</div><div class="stat-label">ROI Médio</div></div>
     </div>
+    <div class="chart-container" id="dash-chart-wrap" style="display:none"><canvas id="chart-dash"></canvas></div>
     <div class="section-header"><h2>Projetos Recentes</h2></div>
     <div id="dash-projects" class="card-list"></div>
-    <button class="fab" onclick="P.showScreen('screen-new-project')">＋</button>
+    <button class="fab" onclick="P.newProject()">＋</button>
     <nav class="bottom-nav">
       <button class="nav-btn active" onclick="P.showScreen('screen-dashboard')"><span>🏠</span>Início</button>
       <button class="nav-btn" onclick="P.showScreen('screen-projects')"><span>🏢</span>Projetos</button>
-      <button class="nav-btn" onclick="P.showScreen('screen-new-project')"><span>➕</span>Novo</button>
+      <button class="nav-btn" onclick="P.newProject()"><span>➕</span>Novo</button>
       <button class="nav-btn" onclick="P.showScreen('screen-analysis')"><span>📊</span>Análise</button>
       <button class="nav-btn" onclick="P.showScreen('screen-settings')"><span>⚙️</span>Mais</button>
     </nav>
@@ -81,33 +81,38 @@
     <header class="app-header">
       <button class="btn-icon" onclick="P.showScreen('screen-dashboard')">←</button>
       <h1 class="header-title">Projetos</h1>
-      <button class="btn-icon" onclick="P.showScreen('screen-new-project')">➕</button>
+      <button class="btn-icon" onclick="P.newProject()">➕</button>
     </header>
+    <div style="padding:.75rem 1.25rem">
+      <input type="text" id="projects-search" placeholder="🔍 Pesquisar projetos..." oninput="P.renderProjects()" style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit">
+    </div>
     <div id="projects-list" class="card-list"></div>
-    <button class="fab" onclick="P.showScreen('screen-new-project')">＋</button>
+    <button class="fab" onclick="P.newProject()">＋</button>
     <nav class="bottom-nav">
       <button class="nav-btn" onclick="P.showScreen('screen-dashboard')"><span>🏠</span>Início</button>
       <button class="nav-btn active" onclick="P.showScreen('screen-projects')"><span>🏢</span>Projetos</button>
-      <button class="nav-btn" onclick="P.showScreen('screen-new-project')"><span>➕</span>Novo</button>
+      <button class="nav-btn" onclick="P.newProject()"><span>➕</span>Novo</button>
       <button class="nav-btn" onclick="P.showScreen('screen-analysis')"><span>📊</span>Análise</button>
       <button class="nav-btn" onclick="P.showScreen('screen-settings')"><span>⚙️</span>Mais</button>
     </nav>
   </div>
 
-  <!-- ===== NEW PROJECT ===== -->
+  <!-- ===== NEW / EDIT PROJECT ===== -->
   <div id="screen-new-project" class="screen">
     <header class="app-header">
       <button class="btn-icon" onclick="P.showScreen('screen-projects')">←</button>
-      <h1 class="header-title">Novo Projeto</h1><div></div>
+      <h1 class="header-title" id="form-title">Novo Projeto</h1><div></div>
     </header>
     <div class="form-container">
       <form onsubmit="P.saveProject(event)">
+        <input type="hidden" id="edit-project-id">
 
         <h3 class="form-section-title">🏢 Informação do Projeto</h3>
         <div class="form-group"><label>Nome do Projeto *</label><input type="text" id="proj-name" placeholder="Ex: Edifício Aurora" required></div>
         <div class="form-group"><label>Localização</label><input type="text" id="proj-location" placeholder="Ex: Lisboa, Avenidas Novas"></div>
-        <div class="form-group"><label>Tipo de Projeto</label>
-          <select id="proj-type"><option>Residencial</option><option>Misto</option><option>Hotel</option><option>Comercial</option><option>Escritórios</option></select>
+        <div class="input-row">
+          <div class="form-group"><label>Tipo</label><select id="proj-type"><option>Residencial</option><option>Misto</option><option>Hotel</option><option>Comercial</option><option>Escritórios</option></select></div>
+          <div class="form-group"><label>Estado</label><select id="proj-status"><option>Em Estudo</option><option>Em Licenciamento</option><option>Em Construção</option><option>Em Venda</option><option>Concluído</option></select></div>
         </div>
         <div class="form-group"><label>Descrição</label><textarea id="proj-desc" rows="2" placeholder="Breve descrição..."></textarea></div>
 
@@ -117,7 +122,7 @@
           <div class="form-group"><label>Área Terreno (m²)</label><input type="number" id="proj-plot-area" placeholder="1000" min="0"></div>
           <div class="form-group"><label>Área Implantação (m²)</label><input type="number" id="proj-impl-area" placeholder="500" min="0"></div>
         </div>
-        <div class="form-group"><label>COS - Coef. Ocupação</label><input type="number" id="proj-cos" placeholder="0.5" step="0.01" min="0" max="2"></div>
+        <div class="form-group"><label>COS</label><input type="number" id="proj-cos" placeholder="0.5" step="0.01" min="0" max="2"></div>
         <div class="input-row">
           <div class="form-group"><label>Pisos Acima Solo</label><input type="number" id="proj-floors-above" placeholder="4" min="0"></div>
           <div class="form-group"><label>Pisos Abaixo Solo</label><input type="number" id="proj-floors-below" placeholder="1" min="0"></div>
@@ -125,38 +130,64 @@
         <div class="form-group"><label>ABC Estimada (m²)</label><input type="text" id="proj-abc" readonly placeholder="Calculado automaticamente" style="background:var(--navy-light);font-weight:600"></div>
 
         <h3 class="form-section-title">🏠 Unidades & Áreas</h3>
+
+        <!-- APARTMENTS -->
         <div class="unit-block">
-          <strong>🏢 Apartamentos</strong>
-          <div class="input-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="unit-block-header"><strong>🏢 Apartamentos</strong><button type="button" class="btn-sm" onclick="P.toggleTip('apt')">Tipologias ▾</button></div>
+          <div id="apt-simple" class="input-row" style="grid-template-columns:1fr 1fr 1fr">
             <div class="form-group"><label>Qtd</label><input type="number" id="proj-apt-qty" placeholder="0" min="0"></div>
             <div class="form-group"><label>Área Média m²</label><input type="number" id="proj-apt-area" placeholder="80" min="0"></div>
             <div class="form-group"><label>Preço €/m²</label><input type="number" id="proj-apt-price" placeholder="3000" min="0"></div>
           </div>
+          <div id="apt-tip-section" class="tip-section" style="display:none">
+            <div id="apt-tip-rows"></div>
+            <button type="button" class="btn-sm btn-outline" onclick="P.addTipRow('apt')">+ Tipologia</button>
+          </div>
         </div>
+
+        <!-- VILLAS -->
         <div class="unit-block">
-          <strong>🏠 Moradias / Villas</strong>
-          <div class="input-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="unit-block-header"><strong>🏠 Moradias / Villas</strong><button type="button" class="btn-sm" onclick="P.toggleTip('villa')">Tipologias ▾</button></div>
+          <div id="villa-simple" class="input-row" style="grid-template-columns:1fr 1fr 1fr">
             <div class="form-group"><label>Qtd</label><input type="number" id="proj-villa-qty" placeholder="0" min="0"></div>
             <div class="form-group"><label>Área Média m²</label><input type="number" id="proj-villa-area" placeholder="150" min="0"></div>
             <div class="form-group"><label>Preço €/m²</label><input type="number" id="proj-villa-price" placeholder="3500" min="0"></div>
           </div>
+          <div id="villa-tip-section" class="tip-section" style="display:none">
+            <div id="villa-tip-rows"></div>
+            <button type="button" class="btn-sm btn-outline" onclick="P.addTipRow('villa')">+ Tipologia</button>
+          </div>
         </div>
+
+        <!-- COMMERCIAL -->
         <div class="unit-block">
-          <strong>🏪 Comércio</strong>
-          <div class="input-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="unit-block-header"><strong>🏪 Comércio</strong><button type="button" class="btn-sm" onclick="P.toggleTip('comm')">Tipologias ▾</button></div>
+          <div id="comm-simple" class="input-row" style="grid-template-columns:1fr 1fr 1fr">
             <div class="form-group"><label>Qtd</label><input type="number" id="proj-comm-qty" placeholder="0" min="0"></div>
             <div class="form-group"><label>Área Média m²</label><input type="number" id="proj-comm-area" placeholder="100" min="0"></div>
             <div class="form-group"><label>Preço €/m²</label><input type="number" id="proj-comm-price" placeholder="2000" min="0"></div>
           </div>
+          <div id="comm-tip-section" class="tip-section" style="display:none">
+            <div id="comm-tip-rows"></div>
+            <button type="button" class="btn-sm btn-outline" onclick="P.addTipRow('comm')">+ Tipologia</button>
+          </div>
         </div>
+
+        <!-- OFFICES -->
         <div class="unit-block">
-          <strong>🏢 Escritórios</strong>
-          <div class="input-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="unit-block-header"><strong>🏢 Escritórios</strong><button type="button" class="btn-sm" onclick="P.toggleTip('office')">Tipologias ▾</button></div>
+          <div id="office-simple" class="input-row" style="grid-template-columns:1fr 1fr 1fr">
             <div class="form-group"><label>Qtd</label><input type="number" id="proj-office-qty" placeholder="0" min="0"></div>
             <div class="form-group"><label>Área Média m²</label><input type="number" id="proj-office-area" placeholder="50" min="0"></div>
             <div class="form-group"><label>Preço €/m²</label><input type="number" id="proj-office-price" placeholder="2500" min="0"></div>
           </div>
+          <div id="office-tip-section" class="tip-section" style="display:none">
+            <div id="office-tip-rows"></div>
+            <button type="button" class="btn-sm btn-outline" onclick="P.addTipRow('office')">+ Tipologia</button>
+          </div>
         </div>
+
+        <!-- PARKING -->
         <div class="unit-block">
           <strong>🅿️ Estacionamento</strong>
           <div class="input-row">
@@ -164,12 +195,18 @@
             <div class="form-group"><label>Preço Unit. €</label><input type="number" id="proj-park-price" placeholder="15000" min="0"></div>
           </div>
         </div>
+
+        <!-- HOTEL -->
         <div class="unit-block">
           <strong>🏨 Hotel (Quartos)</strong>
           <div class="input-row" style="grid-template-columns:1fr 1fr 1fr">
             <div class="form-group"><label>Nº Quartos</label><input type="number" id="proj-hotel-qty" placeholder="0" min="0"></div>
             <div class="form-group"><label>ADR (€/noite)</label><input type="number" id="proj-hotel-adr" placeholder="100" min="0" step="0.01"></div>
             <div class="form-group"><label>Ocupação %</label><input type="number" id="proj-hotel-occ" placeholder="70" min="0" max="100"></div>
+          </div>
+          <div class="input-row">
+            <div class="form-group"><label>Margem GOP (%)</label><input type="number" id="proj-hotel-gop" value="35" min="0" max="100"></div>
+            <div class="form-group"><label>Anos Operação</label><input type="number" id="proj-hotel-years" value="10" min="1" max="50"></div>
           </div>
         </div>
 
@@ -185,6 +222,9 @@
         </div>
 
         <h3 class="form-section-title">🏦 Financiamento</h3>
+        <div class="form-group"><label>Tipo de Crédito</label>
+          <select id="proj-loan-type"><option value="bullet">Bullet (Capital no final)</option><option value="amortizing">Amortização Constante</option><option value="interest-only">Juros Periódicos</option></select>
+        </div>
         <div class="input-row" style="grid-template-columns:1fr 1fr 1fr">
           <div class="form-group"><label>Equity (%)</label><input type="number" id="proj-equity-pct" value="40" min="0" max="100"></div>
           <div class="form-group"><label>Taxa Juro (%)</label><input type="number" id="proj-interest" value="4" min="0" step="0.1"></div>
@@ -204,7 +244,10 @@
         </div>
 
         <h3 class="form-section-title">📅 Cronograma</h3>
-        <div class="form-group"><label>Duração Construção (meses)</label><input type="number" id="proj-build-months" value="24" min="1"></div>
+        <div class="input-row">
+          <div class="form-group"><label>Licenciamento (meses)</label><input type="number" id="proj-licensing-months" value="6" min="0"></div>
+          <div class="form-group"><label>Construção (meses)</label><input type="number" id="proj-build-months" value="24" min="1"></div>
+        </div>
         <p style="font-size:.82rem;font-weight:600;color:var(--text-2);margin-bottom:.5rem">Ritmo de Vendas (% por ano)</p>
         <div class="input-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
           <div class="form-group"><label>Ano 1</label><input type="number" id="proj-sales-y1" value="20" min="0" max="100"></div>
@@ -217,6 +260,7 @@
           <div class="form-group"><label>Valorização Anual (%)</label><input type="number" id="proj-appreciation" value="2" min="0" step="0.1"></div>
         </div>
 
+        <div id="validation-summary" style="display:none"></div>
         <button type="submit" class="btn-primary btn-xl btn-full" style="margin-top:1rem">📊 Calcular Viabilidade</button>
       </form>
     </div>
@@ -230,12 +274,20 @@
       <button class="btn-icon" onclick="P.deleteProject()">🗑️</button>
     </header>
     <div id="proj-detail-hero" class="detail-hero"></div>
+    <div class="detail-actions">
+      <button class="action-btn" onclick="P.editProject()">✏️ Editar</button>
+      <button class="action-btn" onclick="P.duplicateProject()">📋 Duplicar</button>
+      <button class="action-btn" onclick="P.shareProject()">🔗 Partilhar</button>
+      <button class="action-btn" onclick="P.exportPDF()">📄 PDF</button>
+    </div>
     <div class="tabs">
       <button class="tab active" onclick="P.switchTab('ptab-resumo',this)">📊 Resumo</button>
       <button class="tab" onclick="P.switchTab('ptab-custos',this)">💰 Custos</button>
       <button class="tab" onclick="P.switchTab('ptab-receitas',this)">🏠 Receitas</button>
-      <button class="tab" onclick="P.switchTab('ptab-cashflow',this)">📈 Cash-Flow</button>
+      <button class="tab" onclick="P.switchTab('ptab-cashflow',this)">📈 CF</button>
       <button class="tab" onclick="P.switchTab('ptab-cenarios',this)">🔄 Cenários</button>
+      <button class="tab" onclick="P.switchTab('ptab-cronograma',this)">📅 Gantt</button>
+      <button class="tab" onclick="P.switchTab('ptab-financiamento',this)">🏦 Crédito</button>
     </div>
     <div id="ptab-resumo" class="tab-content active"></div>
     <div id="ptab-custos" class="tab-content"></div>
@@ -244,16 +296,42 @@
     <div id="ptab-cenarios" class="tab-content">
       <div style="padding:1rem">
         <h3 style="font-size:1rem;font-weight:700;margin-bottom:1rem;color:var(--navy)">🔄 Análise de Cenários</h3>
-        <p class="text-muted" style="margin-bottom:1rem">Ajuste a variação % do preço de venda para cada cenário</p>
+        <p class="text-muted" style="margin-bottom:1rem">Variação % do preço de venda</p>
         <div class="input-row" style="grid-template-columns:1fr 1fr 1fr">
-          <div class="form-group"><label>Pessimista (%)</label><input type="number" id="cen-worst" value="-15"></div>
-          <div class="form-group"><label>BAU (%)</label><input type="number" id="cen-bau" value="0"></div>
-          <div class="form-group"><label>Otimista (%)</label><input type="number" id="cen-best" value="15"></div>
+          <div class="form-group"><label>Pessimista</label><input type="number" id="cen-worst" value="-15"></div>
+          <div class="form-group"><label>BAU</label><input type="number" id="cen-bau" value="0"></div>
+          <div class="form-group"><label>Otimista</label><input type="number" id="cen-best" value="15"></div>
         </div>
         <button class="btn-primary btn-full" onclick="P.runSensitivity(P.currentProject)">Recalcular Cenários</button>
         <div id="cenarios-result" style="margin-top:1rem"></div>
+        <h3 style="font-size:1rem;font-weight:700;margin:1.5rem 0 .8rem;color:var(--navy)">🎯 Break-Even</h3>
+        <button class="btn-gold btn-full" onclick="P.calcBreakEven()">Calcular Preço Mínimo</button>
+        <div id="breakeven-result" style="margin-top:1rem"></div>
       </div>
     </div>
+    <div id="ptab-cronograma" class="tab-content"></div>
+    <div id="ptab-financiamento" class="tab-content"></div>
+  </div>
+
+  <!-- ===== COMPARE ===== -->
+  <div id="screen-compare" class="screen">
+    <header class="app-header">
+      <button class="btn-icon" onclick="P.showScreen('screen-analysis')">←</button>
+      <h1 class="header-title">Comparar Projetos</h1><div></div>
+    </header>
+    <div style="padding:1rem 1.25rem">
+      <p class="text-muted" style="margin-bottom:1rem">Selecione 2 ou mais projetos para comparar</p>
+      <div id="compare-list"></div>
+      <button class="btn-primary btn-full" onclick="P.runComparison()" style="margin-top:1rem">📊 Comparar</button>
+    </div>
+    <div id="compare-result" style="padding:0 1.25rem 1rem"></div>
+    <nav class="bottom-nav">
+      <button class="nav-btn" onclick="P.showScreen('screen-dashboard')"><span>🏠</span>Início</button>
+      <button class="nav-btn" onclick="P.showScreen('screen-projects')"><span>🏢</span>Projetos</button>
+      <button class="nav-btn" onclick="P.newProject()"><span>➕</span>Novo</button>
+      <button class="nav-btn active" onclick="P.showScreen('screen-analysis')"><span>📊</span>Análise</button>
+      <button class="nav-btn" onclick="P.showScreen('screen-settings')"><span>⚙️</span>Mais</button>
+    </nav>
   </div>
 
   <!-- ===== ANALYSIS ===== -->
@@ -266,7 +344,7 @@
     <nav class="bottom-nav">
       <button class="nav-btn" onclick="P.showScreen('screen-dashboard')"><span>🏠</span>Início</button>
       <button class="nav-btn" onclick="P.showScreen('screen-projects')"><span>🏢</span>Projetos</button>
-      <button class="nav-btn" onclick="P.showScreen('screen-new-project')"><span>➕</span>Novo</button>
+      <button class="nav-btn" onclick="P.newProject()"><span>➕</span>Novo</button>
       <button class="nav-btn active" onclick="P.showScreen('screen-analysis')"><span>📊</span>Análise</button>
       <button class="nav-btn" onclick="P.showScreen('screen-settings')"><span>⚙️</span>Mais</button>
     </nav>
@@ -287,23 +365,27 @@
       </div>
       <div class="menu-list">
         <button class="menu-item" onclick="P.showScreen('screen-analysis')">📊 Análise Global</button>
+        <button class="menu-item" onclick="P.showScreen('screen-compare')">📋 Comparar Projetos</button>
         <button class="menu-item" onclick="P.exportCSV()">📤 Exportar CSV</button>
+        <button class="menu-item" onclick="P.exportAllPDF()">📄 Exportar PDF (Todos)</button>
+        <button class="menu-item" onclick="P.exportJSON()">💾 Exportar Dados (JSON)</button>
+        <button class="menu-item" onclick="document.getElementById('import-file').click()">📥 Importar Dados (JSON)</button>
       </div>
       <div class="settings-section">
         <h3>Plano</h3>
         <div class="plan-card">
-          <div class="plan-badge">Gratuito</div>
-          <p style="margin:.5rem 0;font-size:.9rem">1 utilizador | funcionalidades básicas</p>
-          <button class="btn-outline btn-full" onclick="alert('Em breve!\n\nPlano Pro: 29€-49€/mês\nProjetos ilimitados + Cenários avançados + Exportação PDF')">Atualizar para Pro 🚀</button>
+          <div class="plan-badge">Pro</div>
+          <p style="margin:.5rem 0;font-size:.9rem">Todas as funcionalidades V2.0</p>
+          <p style="font-size:.78rem;opacity:.8">Gráficos | PDF | Cenários | Comparação | Risco</p>
         </div>
       </div>
-      <p class="text-muted" style="text-align:center;margin-top:1rem;font-size:.8rem">PromoFácil v1.0</p>
+      <p class="text-muted" style="text-align:center;margin-top:1rem;font-size:.8rem">PromoFácil v2.0 Pro</p>
       <button class="btn-danger btn-full" onclick="P.logout()" style="margin-top:1rem">Terminar Sessão</button>
     </div>
     <nav class="bottom-nav">
       <button class="nav-btn" onclick="P.showScreen('screen-dashboard')"><span>🏠</span>Início</button>
       <button class="nav-btn" onclick="P.showScreen('screen-projects')"><span>🏢</span>Projetos</button>
-      <button class="nav-btn" onclick="P.showScreen('screen-new-project')"><span>➕</span>Novo</button>
+      <button class="nav-btn" onclick="P.newProject()"><span>➕</span>Novo</button>
       <button class="nav-btn" onclick="P.showScreen('screen-analysis')"><span>📊</span>Análise</button>
       <button class="nav-btn active" onclick="P.showScreen('screen-settings')"><span>⚙️</span>Mais</button>
     </nav>
@@ -313,6 +395,8 @@
   <div id="modal-overlay" class="modal-overlay" onclick="P.closeModal()"><div class="modal" onclick="event.stopPropagation()"><div id="modal-content"></div></div></div>
   <!-- TOAST -->
   <div id="toast" class="toast"></div>
+  <!-- HIDDEN FILE INPUT FOR IMPORT -->
+  <input type="file" id="import-file" accept=".json" style="display:none" onchange="P.importJSON(event)">
 
   <script src="app.js"></script>
 </body>
